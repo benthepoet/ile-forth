@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
+int data_stack[127];
+char data_sp = -1;
 
 void handle_token(char* buffer, int endpos, int alpha);
 
@@ -42,6 +46,12 @@ int main(int argc, char** argv)
       }
     }
   }
+
+  printf("Dumping stack\n");
+  for (int i = data_sp; i > -1; i--)
+  {
+    printf("%d\n", data_stack[i]);
+  }
   
   return 0;
 }
@@ -49,5 +59,11 @@ int main(int argc, char** argv)
 void handle_token(char* buffer, int endpos, int alpha)
 {
   buffer[endpos] = '\0';
+
+  if (alpha == 0)
+  {
+    data_stack[++data_sp] = strtol(buffer, NULL, 10);
+  }
+  
   printf("%s - %d\n", buffer, alpha);
 }
