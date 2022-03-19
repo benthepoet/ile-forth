@@ -5,6 +5,7 @@
 int data_stack[127];
 char data_sp = -1;
 
+int pop_data();
 void handle_token(char* buffer, int endpos, int alpha);
 
 int main(int argc, char** argv)
@@ -48,12 +49,29 @@ int main(int argc, char** argv)
   }
 
   printf("Dumping stack\n");
-  for (int i = data_sp; i > -1; i--)
+
+  int sp_value = -1;
+  while((sp_value = pop_data()) > -1)
   {
-    printf("%d\n", data_stack[i]);
+    printf("%d\n", sp_value);
   }
-  
+
   return 0;
+}
+
+void push_data(int value)
+{
+  data_stack[++data_sp] = value;
+}
+
+int pop_data()
+{
+  if (data_sp < 0)
+  {
+    return data_sp;
+  }
+
+  return data_stack[data_sp--];
 }
 
 void handle_token(char* buffer, int endpos, int alpha)
@@ -62,7 +80,8 @@ void handle_token(char* buffer, int endpos, int alpha)
 
   if (alpha == 0)
   {
-    data_stack[++data_sp] = strtol(buffer, NULL, 10);
+    int value = strtol(buffer, NULL, 10);
+    push_data(value);
   }
   
   printf("%s - %d\n", buffer, alpha);
