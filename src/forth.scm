@@ -116,7 +116,8 @@
 
 (let loop ((input (read-line (current-input-port))))
   (with-exception-catcher
-    (lambda (e) (println e))
-    (lambda ()
-      (parse-input input)))
+   (lambda (e)
+    (println e))
+   (lambda ()
+     (parse-input input)))
   (loop (read-line (current-input-port))))
