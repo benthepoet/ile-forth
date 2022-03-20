@@ -9,6 +9,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  char output[32];
   char* input = argv[1];
   int k = 0;
   int l = strlen(input);
@@ -17,16 +18,18 @@ int main(int argc, char** argv)
   {
     if (i == l || isspace(input[i]))
     {
-      if (i - k > 0)
+      if (k > 0)
       {
-        char output[32];
-        strncpy(output, &input[k], i - k);
-        output[i - k] = '\0';
+        output[k] = '\0';
+        k = 0;
         printf("%s\n", output);
-        k = i;
       }
+    }
+    else
+    {
+      output[k] = input[i];
       k++;
-    }   
+    }
   }
   
   return 0;
