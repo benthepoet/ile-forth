@@ -1,0 +1,10 @@
+(define parse-input
+  (lambda (input)
+    (let loop ((i 0)
+               (k 0)
+               (s (make-string 32))
+               (l (string-length input)))
+      (if (< i l)
+          (let ((c (string-ref input i)))
+            (if (char-whitespace? c)
+                (string-set! input i)))))))

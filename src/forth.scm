@@ -7,27 +7,27 @@
               (cadr a)
               (loop (cddr a)))))))
 
-(define data-stack-size 16)
+(define p-stack-size 16)
 
-(define data-stack
-  (make-vector data-stack-size))
+(define p-stack
+  (make-vector p-stack-size))
 
-(define data-sp -1) 
+(define p-sp -1) 
 
-(define push-data
+(define push-p
   (lambda (value)
-    (if (= data-sp (- data-stack-size 1))
+    (if (= p-sp (- p-stack-size 1))
         (raise ':stack-overflow)
         (begin
-          (set! data-sp (+ data-sp 1))
-          (vector-set! data-stack data-sp value)))))
+          (set! p-sp (+ p-sp 1))
+          (vector-set! p-stack p-sp value)))))
 
-(define pop-data
+(define pop-p
   (lambda ()
-    (if (> data-sp -1)
-     (let ((value (vector-ref data-stack data-sp)))
-       (vector-set! data-stack data-sp 0)
-       (set! data-sp (- data-sp 1))
+    (if (> p-sp -1)
+     (let ((value (vector-ref p-stack p-sp)))
+       (vector-set! p-stack p-sp 0)
+       (set! p-sp (- p-sp 1))
        value)
      (raise ':stack-underflow))))
 
@@ -40,35 +40,35 @@
 
 (add-word "drop"
           (lambda ()
-            (let ((a (pop-data)))
+            (let ((a (p-data)))
               (println a))))
 
 (add-word "dup"
           (lambda ()
-            (if (< data-sp 0)
+            (if (< p-sp 0)
                 (raise ':stack-underflow))
-            (let ((a (vector-ref data-stack data-sp)))
-              (push-data a))))
+            (let ((a (vector-ref p-stack p-sp)))
+              (push-p a))))
 
 (add-word "+"
           (lambda ()
-            (let ((a (pop-data))
-                  (b (pop-data)))
-              (push-data (+ a b)))))
+            (let ((a (pop-p))
+                  (b (pop-p)))
+              (push-p (+ a b)))))
 
 (add-word "-"
           (lambda ()
-            (let ((a (pop-data))
-                  (b (pop-data)))
-              (push-data (- a b)))))
+            (let ((a (pop-p))
+                  (b (pop-p)))
+              (push-p (- a b)))))
 
 (add-word "="
           (lambda ()
-            (let ((a (pop-data))
-                  (b (pop-data)))
+            (let ((a (pop-p))
+                  (b (pop-p)))
               (if (= a b)
-                  (push-data -1)
-                  (push-data 0)))))
+                  (push-p -1)
+                  (push-p 0)))))
 
 (add-word "bye"
           (lambda ()
@@ -92,6 +92,21 @@
             (println 'ok)
             (code))
           (println '?)))))          
+
+(define parse-input
+  (lambda (input)
+    (let loop ((i 0)
+               (k -1)
+               (l (string-length input)))
+      (if (< i l)
+          (if (and (= k -1)
+                   ()))
+              
+          (let ((c (string-ref input c)))
+            (if (char-whitespace? c)
+              (println (substring input k i)))    
+            (loop (+ i 1) l))))
+    (print input)))
 
 (let loop ((input (read-line (current-input-port))))
   (with-exception-catcher
