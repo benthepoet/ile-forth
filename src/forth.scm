@@ -74,30 +74,28 @@
           (lambda ()
             (exit)))
 
-(define call-word
+(define find-word
   (lambda (name)
     (let loop ((head (car word-dict))
                (tail (cdr word-dict)))
       (if (string=? name (getp ':name head))
-          (let ((code (getp ':code head)))
-            (code)
-            'ok)
+          head 
           (if (pair? tail)
               (loop (car tail) (cdr tail))
-              '?)))))
-       
+              '())))))
 
 (define parse-token
-  (lambda ()
-    #f))
-
-(define execute
-  (lambda (input)
-    (call-word input)))
+  (lambda (token)
+    (let ((word (find-word token)))
+      (if (pair? word)
+          (let ((code (getp ':code word)))
+            (println 'ok)
+            (code))
+          (println '?)))))          
 
 (let loop ((input (read-line (current-input-port))))
   (with-exception-catcher
     (lambda (e) (println e))
     (lambda ()
-      (println (execute input))))
+      (parse-token input)))
   (loop (read-line (current-input-port))))
