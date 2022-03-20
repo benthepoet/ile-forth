@@ -40,7 +40,7 @@
 
 (add-word "drop"
           (lambda ()
-            (let ((a (p-data)))
+            (let ((a (pop-p)))
               (println a))))
 
 (add-word "dup"
@@ -91,26 +91,32 @@
           (let ((code (getp ':code word)))
             (println 'ok)
             (code))
-          (println '?)))))          
+          (let ((n (string->number token)))
+            (if n
+              (push-p n)
+              (println '?)))))))          
 
 (define parse-input
   (lambda (input)
-    (let loop ((i 0)
-               (k -1)
-               (l (string-length input)))
-      (if (< i l)
-          (if (and (= k -1)
-                   ()))
-              
-          (let ((c (string-ref input c)))
-            (if (char-whitespace? c)
-              (println (substring input k i)))    
-            (loop (+ i 1) l))))
-    (print input)))
+    (let ((cursor 0)
+          (token (make-string 32))
+          (length (string-length input)))
+      (let loop ((i 0))
+          (if (or (= i length)
+                  (char-whitespace? (string-ref input i)))
+              (begin
+                (if (> (- i cursor) 0)
+                    (begin
+                      (parse-token
+                       (substring input cursor i))
+                      (set! cursor i)))
+                (set! cursor (+ cursor 1))))
+        (if (< i length)
+            (loop (+ i 1)))))))
 
 (let loop ((input (read-line (current-input-port))))
   (with-exception-catcher
     (lambda (e) (println e))
     (lambda ()
-      (parse-token input)))
+      (parse-input input)))
   (loop (read-line (current-input-port))))
