@@ -60,7 +60,7 @@
           (lambda ()
             (let ((a (pop-p))
                   (b (pop-p)))
-              (push-p (- a b)))))
+              (push-p (- b a)))))
 
 (add-word "="
           (lambda ()
