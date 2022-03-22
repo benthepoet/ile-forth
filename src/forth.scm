@@ -7,77 +7,94 @@
               (cadr a)
               (loop (cddr a)))))))
 
-(define p-stack-size 16)
+(define +memory-size+ 1024)
 
-(define p-stack
-  (make-vector p-stack-size))
+(define +memory+
+  (make-vector +memory-size+))
 
-(define p-sp -1) 
+(define +here+ 0)
 
-(define push-p
+(define +latest+ (list))
+
+(define +p-stack-size+ 64)
+
+(define +p-stack+
+  (make-vector +p-stack-size+))
+
+(define +p-sp+ -1) 
+
+(define p-push
   (lambda (value)
-    (if (= p-sp (- p-stack-size 1))
+    (if (= +p-sp+ (- +p-stack-size+ 1))
         (raise ':stack-overflow)
         (begin
-          (set! p-sp (+ p-sp 1))
-          (vector-set! p-stack p-sp value)))))
+          (set! +p-sp+ (+ +p-sp+ 1))
+          (vector-set! +p-stack+ +p-sp+ value)))))
 
-(define pop-p
+(define p-pop
   (lambda ()
-    (if (> p-sp -1)
-     (let ((value (vector-ref p-stack p-sp)))
-       (vector-set! p-stack p-sp 0)
-       (set! p-sp (- p-sp 1))
+    (if (> +p-sp+ -1)
+     (let ((value (vector-ref +p-stack+ +p-sp+)))
+       (vector-set! +p-stack+ +p-sp+ 0)
+       (set! +p-sp+ (- +p-sp+ 1))
        value)
      (raise ':stack-underflow))))
 
-(define word-dict (list))
+(define +latest+ (list))
  
-(define add-word
+(define define-primitive
   (lambda (name code)
-    (set! word-dict
-          (cons (list ':name name ':code code) word-dict))))
+    (set! +latest+
+          (cons (list ':name name ':address +here+) +latest+))
+    (vector-set! +memory+ +here+ code)
+    (set! +here+ (+ +here+ 1))))
 
-(add-word "drop"
-          (lambda ()
-            (let ((a (pop-p)))
-              (println a))))
+(define-primitive
+  "drop"
+  (lambda ()
+    (let ((a (p-pop)))
+      (println a))))
 
-(add-word "dup"
-          (lambda ()
-            (if (< p-sp 0)
-                (raise ':stack-underflow))
-            (let ((a (vector-ref p-stack p-sp)))
-              (push-p a))))
+(define-primitive
+  "dup"
+  (lambda ()
+     (if (< +p-sp+ 0)
+         (raise ':stack-underflow))
+     (let ((a (vector-ref +p-stack+ +p-sp+)))
+       (p-push a))))
 
-(add-word "+"
-          (lambda ()
-            (let ((a (pop-p))
-                  (b (pop-p)))
-              (push-p (+ a b)))))
+(define-primitive
+  "+"
+  (lambda ()
+     (let ((a (p-pop))
+           (b (p-pop)))
+       (p-push (+ a b)))))
 
-(add-word "-"
-          (lambda ()
-            (let ((a (pop-p))
-                  (b (pop-p)))
-              (push-p (- b a)))))
+(define-primitive
+  "-"
+  (lambda ()
+     (let ((a (p-pop))
+           (b (p-pop)))
+       (p-push (- b a)))))
 
-(add-word "="
-          (lambda ()
-            (let ((a (pop-p))
-                  (b (pop-p)))
-              (if (= a b)
-                  (push-p -1)
-                  (push-p 0)))))
+(define-primitive
+  "="
+  (lambda ()
+    (let ((a (p-pop))
+          (b (p-pop)))
+      (if (= a b)
+          (p-push -1)
+          (p-push 0)))))
 
-(add-word "bye"
-          (lambda ()
-            (exit)))
+(define-primitive
+  "bye"
+  (lambda ()
+    (exit)))
 
-(define find-word
+(define find-definition
   (lambda (name)
-    (let loop ((head (car word-dict))
-               (tail (cdr word-dict)))
+    (let loop ((head (car +latest+))
+               (tail (cdr +latest+)))
       (if (string=? name (getp ':name head))
           head 
           (if (pair? tail)
@@ -86,14 +103,15 @@
 
 (define parse-token
   (lambda (token)
-    (let ((word (find-word token)))
-      (if (pair? word)
-          (let ((code (getp ':code word)))
+    (let ((definition (find-definition token)))
+      (if (pair? definition)
+          (let* ((address (getp ':address definition))
+                 (code (vector-ref +memory+ address)))
             (println 'ok)
             (code))
           (let ((n (string->number token)))
             (if n
-              (push-p n)
+              (p-push n)
               (println '?)))))))          
 
 (define parse-input
