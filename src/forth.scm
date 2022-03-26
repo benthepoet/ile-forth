@@ -12,63 +12,69 @@
 (define +memory+
   (make-vector +memory-size+))
 
-(define +here+ 0)
+(define +memory-cursor+ 0)
+
+(define +memory-iptr+ 0)
 
 (define +latest+ (list))
 
-(define +p-stack-size+ 64)
+(define +param-stack+ (list))
 
-(define +p-stack+
-  (make-vector +p-stack-size+))
+(define param-push
+  (lambda (x)
+    (set! +param-stack+ (cons x +param-stack+))))
 
-(define +p-sp+ -1) 
-
-(define p-push
-  (lambda (value)
-    (if (= +p-sp+ (- +p-stack-size+ 1))
-        (raise ':stack-overflow)
-        (begin
-          (set! +p-sp+ (+ +p-sp+ 1))
-          (vector-set! +p-stack+ +p-sp+ value)))))
-
-(define p-pop
+(define param-pop
   (lambda ()
-    (if (> +p-sp+ -1)
-     (let ((value (vector-ref +p-stack+ +p-sp+)))
-       (vector-set! +p-stack+ +p-sp+ 0)
-       (set! +p-sp+ (- +p-sp+ 1))
-       value)
-     (raise ':stack-underflow))))
+    (if (pair? +param-stack+)
+        (let ((head (car +param-stack+))
+              (tail (cdr +param-stack+)))
+          (set! +param-stack+ tail)
+          head)
+        (raise 'stack-underflow))))
 
-(define +latest+ (list))
- 
+(define +return-stack+ (list))
+
+(define return-push
+  (lambda (x)
+    (set! +return-stack+ (cons x +return-stack+))))
+
+(define return-pop
+  (lambda ()
+    (if (pair? +return-stack+)
+        (let ((head (car +return-stack+))
+              (tail (cdr +return-stack+)))
+          (set! +return-stack+ tail)
+          head)
+        (raise 'stack-underflow))))
+
 (define define-primitive
   (lambda (name code)
     (set! +latest+
-          (cons (list ':name name ':address +here+) +latest+))
-    (vector-set! +memory+ +here+ code)
-    (set! +here+ (+ +here+ 1))))
+          (cons (list ':name name ':address +memory-cursor+) +latest+))
+    (vector-set! +memory+ +memory-cursor+ code)
+    (set! +memory-cursor+ (+ +memory-cursor+ 1))))
 
 (define-primitive
   "drop"
   (lambda ()
-    (let ((a (p-pop)))
+    (let ((a (param-pop)))
       (println a))))
 
 (define-primitive
   "dup"
   (lambda ()
-     (if (< +p-sp+ 0)
+     (if (not (pair? +param-stack+))
          (raise ':stack-underflow))
-     (let ((a (vector-ref +p-stack+ +p-sp+)))
-       (p-push a))))
+     (let ((head (car +param-stack+)))
+       (param-push head))))
 
 (define-primitive
   "+"
   (lambda ()
-     (let ((a (p-pop))
-           (b (p-pop)))
-       (p-push (+ a b)))))
+     (let ((a (param-pop))
+           (b (param-pop)))
+       (param-push (+ a b)))))
 
 (define-primitive
   "-"
@@ -80,11 +86,11 @@
 (define-primitive
   "="
   (lambda ()
-    (let ((a (p-pop))
-          (b (p-pop)))
+    (let ((a (param-pop))
+          (b (param-pop)))
       (if (= a b)
-          (p-push -1)
-          (p-push 0)))))
+          (param-push -1)
+          (param-push 0)))))
 
 (define-primitive
   "bye"
@@ -111,7 +117,7 @@
             (code))
           (let ((n (string->number token)))
             (if n
-              (p-push n)
+              (param-push n)
               (println '?)))))))          
 
 (define parse-input
