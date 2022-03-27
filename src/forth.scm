@@ -48,18 +48,31 @@
           head)
         (raise 'stack-underflow))))
 
+(define +input-buffer+ "")
+(define +input-cursor+ 0)
+
 (define define-primitive
-  (lambda (name code)
+  (lambda (name instr)
     (set! +latest+
           (cons (list ':name name ':address +memory-cursor+) +latest+))
-    (vector-set! +memory+ +memory-cursor+ code)
+    (vector-set! +memory+ +memory-cursor+ instr)
     (set! +memory-cursor+ (+ +memory-cursor+ 1))))
+
+(define-primitive
+  "quit"
+  (lambda ()
+    (set! +return-stack+ (list))))
+
+(define-primitive
+  "interpret"
+  (lambda ()
+    (set! +memory-iptr+ 1)
+    (read-word)))
 
 (define-primitive
   "drop"
   (lambda ()
-    (let ((a (param-pop)))
-      (println a))))
+    (param-pop)))    
 
 (define-primitive
   "dup"
@@ -79,9 +92,9 @@
 (define-primitive
   "-"
   (lambda ()
-     (let ((a (p-pop))
-           (b (p-pop)))
-       (p-push (- b a)))))
+     (let ((a (param-pop))
+           (b (param-pop)))
+       (param-push (- b a)))))
 
 (define-primitive
   "="
@@ -91,6 +104,11 @@
       (if (= a b)
           (param-push -1)
           (param-push 0)))))
+
+(define-primitive
+  "."
+  (lambda ()
+    (println (param-pop))))
 
 (define-primitive
   "bye"
@@ -105,43 +123,56 @@
           head 
           (if (pair? tail)
               (loop (car tail) (cdr tail))
-              '())))))
+              (list))))))
 
-(define parse-token
-  (lambda (token)
-    (let ((definition (find-definition token)))
+(define process-word
+  (lambda (word)
+    (let ((definition (find-definition word)))
       (if (pair? definition)
           (let* ((address (getp ':address definition))
-                 (code (vector-ref +memory+ address)))
-            (println 'ok)
-            (code))
-          (let ((n (string->number token)))
+                 (instr (vector-ref +memory+ address)))
+            (instr))
+          (let ((n (string->number word)))
             (if n
-              (param-push n)
-              (println '?)))))))          
+                (param-push n)
+                (raise '?)))))))          
 
-(define parse-input
-  (lambda (input)
-    (let ((cursor 0)
-          (token (make-string 32))
-          (length (string-length input)))
-      (let loop ((i 0))
+(define read-word
+  (lambda ()
+    (let ((word "")
+          (length (string-length +input-buffer+)))
+      (let loop ((i +input-cursor+))
           (if (or (= i length)
-                  (char-whitespace? (string-ref input i)))
+                  (char-whitespace? (string-ref +input-buffer+ i)))
               (begin
-                (if (> (- i cursor) 0)
+                (if (> (- i +input-cursor+) 0)
                     (begin
-                      (parse-token
-                       (substring input cursor i))
-                      (set! cursor i)))
-                (set! cursor (+ cursor 1))))
-        (if (< i length)
-            (loop (+ i 1)))))))
+                      (set! word (substring +input-buffer+ +input-cursor+ i))
+                      (process-word word)
+                      (set! +input-cursor+ i)))
+                (set! +input-cursor+ (+ +input-cursor+ 1))))
+          (if (and (< i length)
+                   (string=? word ""))
+              (loop (+ i 1)))))))
 
-(let loop ((input (read-line (current-input-port))))
+(let input-loop ((input (read-line (current-input-port))))
   (with-exception-catcher
    (lambda (e)
     (println e))
    (lambda ()
-     (parse-input input)))
-  (loop (read-line (current-input-port))))
+     (set! +input-buffer+ input)
+     (set! +input-cursor+ 0)
+     (set! +memory-iptr+ 0)
+     
+     (if (= 0 (string-length +input-buffer+))
+        (raise '?))
+    
+     (let next ()
+        (let ((instr (vector-ref +memory+ +memory-iptr+)))
+         (set! +memory-iptr+ (+ +memory-iptr+ 1))
+         (instr))
+        (if (< +input-cursor+ (string-length +input-buffer+))
+            (next)
+            (println 'ok)))))
+  
+  (input-loop (read-line (current-input-port))))
